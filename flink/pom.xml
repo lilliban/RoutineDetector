@@ -35,6 +35,12 @@
             <version>${flink.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-cep</artifactId>
+            <version>1.19.1</version>
+        </dependency>
+
         <!-- Logging (evita warning/assenza logger) -->
         <dependency>
             <groupId>org.slf4j</groupId>

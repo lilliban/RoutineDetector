@@ -8,13 +8,21 @@ import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
-//trasforma da CSV a oggetto Event
-//MapFunction<IN, OUT> è un’interfaccia di Flink e poi devi avere public Event map(String value)
+// trasforma da CSV a oggetto Event
+// MapFunction<IN, OUT> è un’interfaccia di Flink e poi devi avere public Event map(String value)
 public class CsvEventParser implements MapFunction<String, Event> {
 
     private boolean headerParsed = false;
-    private Map<String, Integer> idx = new HashMap<>();
+    private final Map<String, Integer> idx = new HashMap<>();
     private char delimiter = '\t';
+
+
+    private Integer tsI;
+    private Integer actI;
+    private Integer idI;
+
+
+    private Integer lifecycleI;
 
     @Override
     public Event map(String line) {
@@ -22,46 +30,60 @@ public class CsvEventParser implements MapFunction<String, Event> {
         line = line.strip();
         if (line.isEmpty()) return null;
 
-        // detect delimiter once using header
+
         if (!headerParsed) {
+
             delimiter = (count(line, '\t') > count(line, ',')) ? '\t' : ',';
+
             String[] cols = split(line, delimiter);
             for (int i = 0; i < cols.length; i++) {
                 idx.put(cols[i].trim(), i);
             }
+
             headerParsed = true;
-            return null; // header row
+
+
+            tsI = idx.get("time:timestamp");
+            actI = idx.get("Activity");
+            idI = idx.get("eventId");
+
+
+            lifecycleI = idx.get("lifecycle:transition");
+
+            return null;
         }
 
         String[] fields = split(line, delimiter);
-
-        // We need: time:timestamp, Activity, eventId (optional)
-        Integer tsI = idx.get("time:timestamp");
-        Integer actI = idx.get("Activity");
-        Integer idI = idx.get("eventId");
 
         if (tsI == null || actI == null) return null;
         if (tsI >= fields.length || actI >= fields.length) return null;
 
         String tsRaw = fields[tsI].trim();
         String activity = fields[actI].trim();
-        long eventId = -1;
 
+        long eventId = -1;
         if (idI != null && idI < fields.length) {
-            try { eventId = Long.parseLong(fields[idI].trim()); } catch (Exception ignored) {}
+            try {
+                eventId = Long.parseLong(fields[idI].trim());
+            }  catch (Exception ignored) {}
         }
+
+
+        String lifecycle = null;
+        if (lifecycleI != null && lifecycleI < fields.length) {
+            lifecycle = fields[lifecycleI].trim();
+        }
+
 
         Instant ts = parseTimestamp(tsRaw);
         if (ts == null) return null;
 
-        return new Event(ts, activity, eventId);
+        return new Event(ts, activity, eventId, "house_1", lifecycle);
     }
 
     private static Instant parseTimestamp(String s) {
         try {
-            // examples:
-            // 2020-03-16 00:00:00+00:00
-            String normalized = s.replace(" ", "T"); // 2020-03-16T00:00:00+00:00
+            String normalized = s.replace(" ", "T");
             return OffsetDateTime.parse(normalized, DateTimeFormatter.ISO_OFFSET_DATE_TIME).toInstant();
         } catch (Exception e) {
             return null;
@@ -75,7 +97,6 @@ public class CsvEventParser implements MapFunction<String, Event> {
     }
 
     private static String[] split(String line, char delim) {
-        // Split semplice (qui non abbiamo virgolette complesse nel dataset)
         return line.split(java.util.regex.Pattern.quote(String.valueOf(delim)), -1);
     }
 }
