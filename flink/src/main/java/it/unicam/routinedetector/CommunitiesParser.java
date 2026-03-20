@@ -3,7 +3,9 @@ package it.unicam.routinedetector;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class CommunitiesParser {
@@ -32,4 +34,23 @@ public class CommunitiesParser {
 
         return map;
     }
-}
+    //ho aggiunto una funzione che ritorna <community, lista_community cosi riusciamo a fare il confronto>
+    public static Map<String, List<String>> loadCommunities(String path) throws IOException {
+        Map<String, List<String>> map = new HashMap<>();
+
+        for(String line : Files.readAllLines(Paths.get(path))) {
+            line = line.trim();
+
+            if (line.isEmpty()) continue;
+            String[] parts = line.split("\t", 2);
+
+            String community = parts[0].split(":")[0];
+            String[] activities = parts[1].split(",");
+            List<String> actList = Arrays.asList(activities);
+
+
+            map.put(community, actList);
+            }
+        return map;
+        }
+    }

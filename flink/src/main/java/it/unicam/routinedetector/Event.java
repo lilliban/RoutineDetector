@@ -13,14 +13,6 @@ public class Event {
 
     public Event() {}
 
-    public Event(Instant timestamp, String activity, long eventId) {
-        this(timestamp, activity, eventId, "house_1", null);
-    }
-
-    public Event(Instant timestamp, String activity, long eventId, String caseId) {
-        this(timestamp, activity, eventId, caseId, null);
-    }
-
     public Event(Instant timestamp, String activity, long eventId, String caseId, String lifecycle) {
         this.timestamp = timestamp;
         this.activity = activity;

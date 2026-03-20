@@ -8,6 +8,7 @@ import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.util.Collector;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -78,12 +79,16 @@ public class CepDetector {
     public static DataStream<DetectedRoutine> detectSimple(
             DataStream<EnrichedEvent> stream,
             String community,
-            String strategyCode) {
+            Strategy strategy,
+            List<String> activities,
+            float percent,
+            Duration tMax) {
 
         //reggruppi per community
         KeyedStream<EnrichedEvent, String> keyed = stream.keyBy(e -> "house_01");
 
-
+        Pattern<EnrichedEvent, ?> pattern = RoutinePatternFactory.build(community, strategy, activities, percent, tMax);
+        /*
         Pattern<EnrichedEvent, ?> pattern = switch (community) {
             case "go_tv"             -> RoutinePatternFactory.goTv();
             case "wc_do"             -> RoutinePatternFactory.wcDo();
@@ -101,8 +106,9 @@ public class CepDetector {
             case "go_chair"          -> RoutinePatternFactory.goChair();
             case "go_dining_table"   -> RoutinePatternFactory.goDiningTable();
             default -> throw new IllegalArgumentException("Unknown community: " + community);
-        };
+          */
 
-        return detect(keyed, pattern, community, strategyCode);
+
+        return detect(keyed, pattern, community, strategy.name());
     }
 }
