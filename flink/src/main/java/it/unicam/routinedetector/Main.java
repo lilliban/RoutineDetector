@@ -69,6 +69,7 @@ public class Main {
                 .filter(e -> "complete".equals(e.lifecycle))
                 .name("keep-only-complete");
 
+        /*
         DataStream<EnrichedEvent> enriched = events
                 //vado a togliere il noise
                 .filter(e -> !isNoise(e.activity))
@@ -81,7 +82,17 @@ public class Main {
                 .name("enrich-community")
                 .filter(x -> x != null)
                 .name("drop-unknown");
+        */
 
+        //Ho provato a togliere il filtraggio del noise a monte..
+        DataStream<EnrichedEvent> enriched = events
+                .filter(e -> !isNoise(e.activity))
+                .name("filter-noise")
+                .map(e -> {
+                    String community = activityToCommunity.getOrDefault(e.activity, "unknown");
+                    return new EnrichedEvent(e.timestamp, e.activity, community, e.eventId);
+                })
+                .name("enrich-community");
 
         if ("enrichment".equalsIgnoreCase(cfg.mode)) {
             System.out.println("Running in ENRICHMENT mode (no CEP detection)");

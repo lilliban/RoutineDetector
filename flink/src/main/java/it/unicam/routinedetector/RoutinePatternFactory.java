@@ -287,6 +287,7 @@ public class RoutinePatternFactory {
             float percent,
             Duration tMax) {
         return switch (strategy) {
+            //compaiono tutti gli eventi della community
             case A -> Pattern.<EnrichedEvent>begin("start",skipStrategy)
                     .where(new SimpleCondition<EnrichedEvent>() {
                         @Override
@@ -297,6 +298,7 @@ public class RoutinePatternFactory {
                     .times(activities.size())
                     .within(tMax);
             case B -> { //attualmente non ha finestre temporali attive
+                //compaiono tutti gli eventi della community
                 Pattern<EnrichedEvent, EnrichedEvent> pattern =
                         Pattern.<EnrichedEvent>begin("step_0", skipStrategy)
                                 .where(new SimpleCondition<EnrichedEvent>() {
@@ -320,6 +322,7 @@ public class RoutinePatternFactory {
             }
 
             //scelto la strategia B..
+            //condizioni A o B e permettiamo eventi di altre community nel mezzo
             case C -> Pattern.<EnrichedEvent>begin("start", skipStrategy)
                     .where(new SimpleCondition<EnrichedEvent>() {
                         @Override
@@ -330,6 +333,8 @@ public class RoutinePatternFactory {
                     .times(activities.size())
                     .allowCombinations() //approssimazione perchè se volessimo precisione dovremmo codificare ogni evento con followedByAny
                     .within(tMax);
+
+            //condizioni A o B e NON permettiamo eventi di altre community nel mezzo
             case D -> Pattern.<EnrichedEvent>begin("start", skipStrategy)
                     .where(new SimpleCondition<EnrichedEvent>() {
                         @Override
@@ -340,8 +345,9 @@ public class RoutinePatternFactory {
                     .times(activities.size())
                     .consecutive()
                     .within(tMax);
-
-            case E, F -> {
+            //compaiono un numero di eventi >= ad una % di eventi della community
+            //come E considerando strategia A
+            case E -> {
                 int number = (int) (activities.size() * percent);
                 yield Pattern.<EnrichedEvent>begin("start", skipStrategy)
                         .where(new SimpleCondition<EnrichedEvent>() {
@@ -353,7 +359,19 @@ public class RoutinePatternFactory {
                         .times(number)
                         .within(tMax);
             }
-
+            case F -> {
+                int number = (int) (activities.size() * percent);
+                yield Pattern.<EnrichedEvent>begin("start",skipStrategy)
+                        .where(new SimpleCondition<EnrichedEvent>() {
+                            @Override
+                            public boolean filter(EnrichedEvent e){
+                                return communityName.equals(e.community);
+                            }
+                        })
+                        .times(number)
+                        .within(tMax);
+            }
+            //come E considerando strategia B
             case G -> {
                 int number = (int) (activities.size() * percent);
                 yield Pattern.<EnrichedEvent>begin("start", skipStrategy)
@@ -368,6 +386,7 @@ public class RoutinePatternFactory {
                         .within(tMax);
 
             }
+            //è passato un tempo T_max tra due eventi della community che danno origine a due attività distinte
             case H -> Pattern.<EnrichedEvent>begin("start", skipStrategy)
                     .where(new SimpleCondition<EnrichedEvent>() {
                         @Override
