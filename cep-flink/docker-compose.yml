@@ -1,0 +1,66 @@
+services:
+
+  jobmanager:
+    image: flink:2.0.0-java17
+    container_name: jobmanager
+    ports:
+      - "8081:8081"
+    command: jobmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        rest.bind-address: 0.0.0.0
+    volumes:
+      - ../data:/data
+      - ./result:/result:rw
+      - ./target:/jars
+
+  taskmanager-1:
+    image: flink:2.0.0-java17
+    container_name: taskmanager-1
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.process.size: 1728m
+    volumes:
+      - ../data:/data
+      - ./result:/result:rw
+
+  taskmanager-2:
+    image: flink:2.0.0-java17
+    container_name: taskmanager-2
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.process.size: 1728m
+    volumes:
+      - ../data:/data
+      - ./result:/result:rw
+
+  taskmanager-3:
+    image: flink:2.0.0-java17
+    container_name: taskmanager-3
+    depends_on:
+      - jobmanager
+    command: taskmanager
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        taskmanager.memory.process.size: 1728m
+    volumes:
+      - ../data:/data
+      - ./result:/result:rw
