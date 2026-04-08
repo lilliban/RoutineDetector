@@ -32,8 +32,11 @@ public class CommunitiesParser {
             String locationId = clean(parts[0]); // "161"
             String zone       = clean(parts[2]); // "Midtown Center"
 
-            if (!locationId.isEmpty() && !zone.isEmpty())
-                map.put(locationId, zone);
+            if (!locationId.isEmpty() && !zone.isEmpty()) {
+                String borough = clean(parts[1]);
+                if (!borough.equals("EWR") && !borough.equals("N/A") && !borough.equals("Unknown"))
+                    map.put(locationId, zone);
+            }
         }
 
         System.out.println("buildLocationIdToZone: " + map.size() + " entries");
@@ -58,7 +61,8 @@ public class CommunitiesParser {
             String zone    = clean(parts[2]);
 
             if (!borough.isEmpty() && !zone.isEmpty())
-                map.put(zone, borough);
+                if (!borough.equals("N/A") && !borough.equals("Unknown") && !borough.equals("EWR"))
+                     map.put(zone, borough);
         }
 
         System.out.println("loadActivityToCommunity: " + map.size() + " entries");
@@ -84,7 +88,7 @@ public class CommunitiesParser {
 
             // salta community non significative
             if (borough.isEmpty() || zone.isEmpty()) continue;
-            if (borough.equals("N/A") || borough.equals("Unknown")) continue;
+            if (borough.equals("N/A") || borough.equals("Unknown") || borough.equals("EWR")) continue;
 
             map.computeIfAbsent(borough, k -> new ArrayList<>()).add(zone);
         }

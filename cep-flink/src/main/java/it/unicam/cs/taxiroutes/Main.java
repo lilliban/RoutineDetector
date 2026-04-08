@@ -1,11 +1,14 @@
 package it.unicam.cs.taxiroutes;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.serialization.SimpleStringEncoder;
+import org.apache.flink.connector.file.sink.FileSink;
 import org.apache.flink.connector.file.src.FileSource;
 import org.apache.flink.connector.file.src.reader.TextLineInputFormat;
 import org.apache.flink.core.fs.Path;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.streaming.api.functions.sink.filesystem.OutputFileConfig;
 
 import java.time.Duration;
 import java.util.List;
@@ -16,13 +19,15 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         Args cfg = Args.parse(args);
+        String subDir = cfg.outputDir + "/strategy-" + cfg.strategy; // CORRETTO 4
 
         System.out.println("Events:      " + cfg.eventsPath);
         System.out.println("Communities: " + cfg.communitiesPath);
-        System.out.println("Output dir:  " + cfg.outputDir);
+        System.out.println("Output dir:  " + subDir);
         System.out.println("Strategy:    " + cfg.strategy);
         System.out.println("Mode:        " + cfg.mode);
-
+        System.out.println("Vendor:      " + (cfg.vendor == null ? "all" : cfg.vendor)); // CORRETTO 3
+        System.out.println("Percent:     " + cfg.percent); // CORRETTO 2
 
         Map<String, String> locationIdToZone =
                 CommunitiesParser.buildLocationIdToZone(cfg.communitiesPath);
@@ -36,7 +41,7 @@ public class Main {
                 CommunitiesParser.loadCommunities(cfg.communitiesPath);
         System.out.println("Loaded communities: " + communities.size());
         for (Map.Entry<String, List<String>> entry : communities.entrySet()) {
-            System.out.println("  " + entry.getKey() + " → " + entry.getValue().size() + " zone");
+            System.out.println("  " + entry.getKey() + " -> " + entry.getValue().size() + " zone");
         }
 
 
@@ -56,15 +61,13 @@ public class Main {
                         && !line.startsWith("VendorID"))
                 .name("skip-header");
 
-
         DataStream<Event> events = lines
-                .map(new CSVInputParser())
+                .map(new CSVInputParser(cfg.vendor)) // CORRETTO 3
                 .name("parse-csv")
                 .filter(e -> e != null)
                 .name("drop-null")
                 .filter(e -> "complete".equals(e.lifecycle))
                 .name("keep-only-complete");
-
 
         DataStream<EnrichedEvent> enriched = events
                 .map(e -> {
@@ -80,15 +83,22 @@ public class Main {
                 .filter(x -> x != null)
                 .name("drop-unknown");
 
-
         if ("enrichment".equalsIgnoreCase(cfg.mode)) {
             System.out.println("Running in ENRICHMENT mode");
 
-            enriched
-                    .map(EnrichedEvent::toCsvLine)
+            // CORRETTO 1 - era .print()
+            OutputFileConfig enrichCfg = OutputFileConfig.builder()
+                    .withPartPrefix("enriched_events")
+                    .withPartSuffix(".csv")
+                    .build();
+            FileSink<String> enrichSink = FileSink
+                    .forRowFormat(new Path(subDir), new SimpleStringEncoder<String>("UTF-8"))
+                    .withOutputFileConfig(enrichCfg)
+                    .build();
+            enriched.map(EnrichedEvent::toCsvLine)
                     .name("to-csv-line")
-                    .print()
-                    .name("print-enriched");
+                    .sinkTo(enrichSink)
+                    .name("write-enriched");
 
         } else {
             System.out.println("Running in DETECTION mode");
@@ -111,23 +121,31 @@ public class Main {
                 DataStream<DetectedRoutine> detected = CEPDetector.detectSimple(
                         withWatermarks, community,
                         Strategy.valueOf(cfg.strategy),
-                        activities, 0.8f,
+                        activities, cfg.percent,        // CORRETTO 2 - era 0.8f
                         Duration.ofHours(24)
                 );
 
-                detected
-                        .map(DetectedRoutine::toCsvLine)
-                        .name("to-csv-" + community)
-                        .print()
-                        .name("print-" + community);
+                // CORRETTO 1 - era .print()
+                String safeName = community.replace(" ", "_");
+                OutputFileConfig fileCfg = OutputFileConfig.builder()
+                        .withPartPrefix("Routes_" + safeName)
+                        .withPartSuffix(".csv")
+                        .build();
+                FileSink<String> sink = FileSink
+                        .forRowFormat(new Path(subDir), new SimpleStringEncoder<String>("UTF-8"))
+                        .withOutputFileConfig(fileCfg)
+                        .build();
+                detected.map(DetectedRoutine::toCsvLine)
+                        .name("to-csv-" + safeName)
+                        .sinkTo(sink)
+                        .name("write-" + safeName);
             }
         }
 
         env.execute("TaxiRoutes - " + cfg.mode);
-        System.out.println("Esecuzione completata!");
+        System.out.println("Esecuzione completata! Output in: " + subDir);
         System.exit(0);
     }
-
 
     static class Args {
         final String eventsPath;
@@ -135,19 +153,27 @@ public class Main {
         final String outputDir;
         final String mode;
         final String strategy;
+        final String vendor;   // CORRETTO 3
+        final float  percent;  // CORRETTO 2
 
         Args(String eventsPath, String communitiesPath,
-             String outputDir, String mode, String strategy) {
+             String outputDir, String mode, String strategy,
+             String vendor, float percent) {
             this.eventsPath      = eventsPath;
             this.communitiesPath = communitiesPath;
             this.outputDir       = outputDir;
             this.mode            = mode;
             this.strategy        = strategy;
+            this.vendor          = vendor;
+            this.percent         = percent;
         }
 
         static Args parse(String[] args) {
             String events = null, comm = null, out = null,
                     mode = "detection", strategy = null;
+            String vendor  = null;  // CORRETTO 3
+            float  percent = 0.8f;  // CORRETTO 2
+
             for (int i = 0; i < args.length; i++) {
                 switch (args[i]) {
                     case "--events"      -> events   = args[++i];
@@ -155,16 +181,18 @@ public class Main {
                     case "--out"         -> out      = args[++i];
                     case "--strategy"    -> strategy = args[++i];
                     case "--mode"        -> mode     = args[++i];
+                    case "--vendor"      -> vendor   = args[++i];  // CORRETTO 3
+                    case "--percent"     -> percent  = Float.parseFloat(args[++i]); // CORRETTO 2
                 }
             }
             if (events == null || comm == null || out == null || strategy == null) {
                 throw new IllegalArgumentException(
                         "Usage: --events <path> --communities <path> " +
                                 "--out <dir> --strategy <A|B|C|D|E|F|G|H> " +
-                                "[--mode enrichment|detection]"
+                                "[--mode enrichment|detection] [--vendor <id>] [--percent <0-1>]"
                 );
             }
-            return new Args(events, comm, out, mode, strategy);
+            return new Args(events, comm, out, mode, strategy, vendor, percent);
         }
     }
 }

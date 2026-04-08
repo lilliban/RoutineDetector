@@ -16,7 +16,16 @@ public class CSVInputParser implements MapFunction<String, Event> {
     private static final int IDX_PICKUP   = 1;
     private static final int IDX_PU_LOC   = 7;
 
+    private final String vendorFilter;
     private long eventCounter = 0;
+
+    public CSVInputParser() {
+        this.vendorFilter = null;
+    }
+
+    public CSVInputParser(String vendorFilter) {
+        this.vendorFilter = vendorFilter;
+    }
 
     @Override
     public Event map(String line) throws Exception {
@@ -33,22 +42,22 @@ public class CSVInputParser implements MapFunction<String, Event> {
 
         if (vendorId.isEmpty() || pickupRaw.isEmpty() || puLocId.isEmpty()) return null;
 
-        Instant ts = parseTimestamp(pickupRaw);
-        if (ts == null) {
-            System.out.println("DEBUG TIMESTAMP FAIL: '" + pickupRaw + "'");
-            return null;
-        }
+        if (vendorFilter != null && !vendorFilter.equals(vendorId)) return null;
 
-        System.out.println("DEBUG PARSED OK: vendor=" + vendorId
-                + " | ts=" + ts + " | loc=" + puLocId);
+        LocalDateTime ldt = parseLocalDateTime(pickupRaw);
+        if (ldt == null) return null;
 
-        return new Event(ts, "loc_" + puLocId, eventCounter++, vendorId, "complete");
+        Instant ts    = ldt.toInstant(ZoneOffset.of("-05:00"));
+        String date   = ldt.toLocalDate().toString();
+        String caseId = vendorId + "_" + date;
+
+        return new Event(ts, "loc_" + puLocId, eventCounter++, caseId, "complete");
     }
 
-    private static Instant parseTimestamp(String s) {
+    private static LocalDateTime parseLocalDateTime(String s) {
         try {
             s = s.replace("\"", "").trim();
-            return LocalDateTime.parse(s, FMT).toInstant(ZoneOffset.of("-05:00"));
+            return LocalDateTime.parse(s, FMT);
         } catch (Exception e) {
             return null;
         }
