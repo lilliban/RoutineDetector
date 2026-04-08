@@ -5,7 +5,7 @@
 4) docker exec jobmanager flink run /job.jar `
   --events /data/input/nyc_taxi.csv `
 --communities /data/communities/taxi_zone_lookup.csv `
-  --out /tmp/result/ `
---mode enrichment `
+  --out /result/ `
+--mode detection `
 --strategy A
-5) docker cp jobmanager:/tmp/result C: il tuo path sul computer
+
