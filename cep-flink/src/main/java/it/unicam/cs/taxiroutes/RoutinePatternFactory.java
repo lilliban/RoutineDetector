@@ -27,8 +27,7 @@ public class RoutinePatternFactory {
                             return communityName.equals(e.community);
                         }
                     })
-                    .times(activities.size())
-                    .within(tMax);
+                    .times(activities.size());
 
             case B -> {
                 Pattern<EnrichedEvent, EnrichedEvent> pattern =
@@ -57,8 +56,7 @@ public class RoutinePatternFactory {
                         }
                     })
                     .times(activities.size())
-                    .allowCombinations()
-                    .within(tMax);
+                    .allowCombinations();
 
             case D -> Pattern.<EnrichedEvent>begin("start", SKIP)
                     .where(new SimpleCondition<EnrichedEvent>() {
@@ -67,8 +65,7 @@ public class RoutinePatternFactory {
                         }
                     })
                     .times(activities.size())
-                    .consecutive()
-                    .within(tMax);
+                    .consecutive();
 
             case E -> {
                 int number = (int) (activities.size() * percent);
@@ -80,8 +77,7 @@ public class RoutinePatternFactory {
                             }
                         })
                         .times(number)
-                        .allowCombinations()
-                        .within(tMax);
+                        .allowCombinations();
             }
 
             case F -> {
@@ -93,8 +89,7 @@ public class RoutinePatternFactory {
                                 return communityName.equals(e.community);
                             }
                         })
-                        .times(number)
-                        .within(tMax);
+                        .times(number);
             }
 
             case G -> {
@@ -106,8 +101,7 @@ public class RoutinePatternFactory {
                             }
                         })
                         .times(number)
-                        .consecutive()
-                        .within(tMax);
+                        .consecutive();
             }
 
             case H -> Pattern.<EnrichedEvent>begin("start", SKIP)
