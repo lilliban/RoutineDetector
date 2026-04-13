@@ -46,6 +46,8 @@ public class DetectedRoutine implements Serializable {
     public void setStartTimestampMillis(long v) { this.startTimestampMillis = v; }
     public void setEndTimestampMillis(long v) { this.endTimestampMillis = v; }
     public void setMatchedActivities(ArrayList<String> matchedActivities) {
+
+
         this.matchedActivities = matchedActivities;
     }
 

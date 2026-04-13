@@ -88,26 +88,6 @@ public class CepDetector {
         KeyedStream<EnrichedEvent, String> keyed = stream.keyBy(e -> "house_01");
 
         Pattern<EnrichedEvent, ?> pattern = RoutinePatternFactory.build(community, strategy, activities, percent, tMax);
-        /*
-        Pattern<EnrichedEvent, ?> pattern = switch (community) {
-            case "go_tv"             -> RoutinePatternFactory.goTv();
-            case "wc_do"             -> RoutinePatternFactory.wcDo();
-            case "go_bed"            -> RoutinePatternFactory.goBed();
-            case "go_computer"       -> RoutinePatternFactory.goComputer();
-            case "change_clothes"    -> RoutinePatternFactory.changeClothes();
-            case "get_water"         -> RoutinePatternFactory.getWater();
-            case "wash_hands"        -> RoutinePatternFactory.washHands();
-            case "go_windows"        -> RoutinePatternFactory.goWindows();
-            case "go_oven"           -> RoutinePatternFactory.goOven();
-            case "get_clothes"       -> RoutinePatternFactory.getClothes();
-            case "get_cold_warm_food"-> RoutinePatternFactory.getColdWarmFood();
-            case "interact_with_man" -> RoutinePatternFactory.interactWithMan();
-            case "do_exercise"       -> RoutinePatternFactory.doExercise();
-            case "go_chair"          -> RoutinePatternFactory.goChair();
-            case "go_dining_table"   -> RoutinePatternFactory.goDiningTable();
-            default -> throw new IllegalArgumentException("Unknown community: " + community);
-          */
-
 
         return detect(keyed, pattern, community, strategy.name());
     }

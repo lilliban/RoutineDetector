@@ -15,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//.\run.bat --events ../data/input/EventLogXESNoSegment.csv --communities ../data/communities/communities_coms_infomap.txt --out ../result/ --mode detection --strategy A
+
 
 public class Main {
 
@@ -40,9 +40,6 @@ public class Main {
             System.out.println("Community: " + entry.getKey() + " → " + entry.getValue().size() + " activities");
         }
 
-
-        //Map<String, String> strategies = initializeStrategies();
-        //System.out.println("Initialized detection strategies for " + strategies.size() + " communities");
 
         // Flink env
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -69,20 +66,6 @@ public class Main {
                 .filter(e -> "complete".equals(e.lifecycle))
                 .name("keep-only-complete");
 
-        /*
-        DataStream<EnrichedEvent> enriched = events
-                //vado a togliere il noise
-                .filter(e -> !isNoise(e.activity))
-                .name("filter-noise")
-                .map(e -> {
-                    String community = activityToCommunity.get(e.activity);
-                    if (community == null) return null;
-                    return new EnrichedEvent(e.timestamp, e.activity, community, e.eventId);
-                })
-                .name("enrich-community")
-                .filter(x -> x != null)
-                .name("drop-unknown");
-        */
 
         //Ho provato a togliere il filtraggio del noise a monte..
         DataStream<EnrichedEvent> enriched = events
@@ -100,15 +83,7 @@ public class Main {
         } else {
             System.out.println("Running in DETECTION mode (with CEP)");
 
-            // watermarks per detection
-            /*
-            DataStream<EnrichedEvent> withWatermarks = enriched
-                    .assignTimestampsAndWatermarks(
-                            WatermarkStrategy
-                                    .<EnrichedEvent>forBoundedOutOfOrderness(Duration.ofSeconds(5))
-                                    .withTimestampAssigner((event, timestamp) -> event.timestamp.toEpochMilli())
-                    );
-            */
+
             //il job finisce alla fine del file (prima asapettava 5 secondi)
             DataStream<EnrichedEvent> withWatermarks = enriched
                     .assignTimestampsAndWatermarks(
@@ -132,9 +107,7 @@ public class Main {
                         0.8f,
                         Duration.ofMinutes(30)
 
-
                 );
-
 
                 writeDetectedRoutinesSeparate(detected, subDir, community);
             }
@@ -165,56 +138,6 @@ public class Main {
                 .name("write-enriched");
     }
 
-
-    private static void writeDetectedRoutines(DataStream<DetectedRoutine> routines, String outputDir) {
-        OutputFileConfig fileCfg = OutputFileConfig
-                .builder()
-                .withPartPrefix("detected_routines")
-                .withPartSuffix(".csv")
-                .build();
-
-        FileSink<String> sink = FileSink
-                .forRowFormat(new Path(outputDir), new SimpleStringEncoder<String>("UTF-8"))
-                .withOutputFileConfig(fileCfg)
-                .build();
-
-        routines
-                .map(DetectedRoutine::toCsvLine)
-                .name("to-csv-line")
-                .sinkTo(sink)
-                .name("write-detections");
-    }
-
-
-    private static Map<String, String> initializeStrategies() {
-        Map<String, String> strategies = new HashMap<>();
-
-        // Strategia A
-        strategies.put("go_windows", "B");
-        strategies.put("go_computer", "B");
-        strategies.put("get_clothes", "B");
-        strategies.put("go_chair", "B");
-        strategies.put("go_tv", "B");
-        strategies.put("go_oven", "B");
-        strategies.put("get_cold_warm_food", "B");
-
-
-        // Strategia C
-        strategies.put("change_clothes", "C");
-        strategies.put("get_water", "C");
-        strategies.put("wc_do", "C");
-        strategies.put("wash_hands", "C");
-        strategies.put("go_dining_table", "C");
-
-        // Strategia D
-        strategies.put("interact_with_man", "D");
-        strategies.put("do_exercise", "D");
-
-        // Strategia BH (multi-step)
-        strategies.put("go_bed", "BH");
-
-        return strategies;
-    }
 
     private static void writeDetectedRoutinesSeparate(
             DataStream<DetectedRoutine> routines,
