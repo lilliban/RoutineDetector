@@ -116,7 +116,7 @@ public class RoutinePatternFactory {
                             return communityName.equals(e.community);
                         }
                     })
-                    .oneOrMore()
+                    .timesOrMore(2)
                     .consecutive()
                     .within(tMax);
         };
