@@ -35,19 +35,6 @@ public class DetectedRoutine implements Serializable {
                 + String.join(";", matchedActivities);
     }
 
-    public String getRoutineName()              { return routineName; }
-    public String getStrategy()                 { return strategy; }
-    public String getCaseId()                   { return caseId; }
-    public long getStartTimestampMillis()       { return startTimestampMillis; }
-    public long getEndTimestampMillis()         { return endTimestampMillis; }
-    public ArrayList<String> getMatchedActivities() { return matchedActivities; }
-
-    public void setRoutineName(String routineName)          { this.routineName = routineName; }
-    public void setStrategy(String strategy)                { this.strategy = strategy; }
-    public void setCaseId(String caseId)                    { this.caseId = caseId; }
-    public void setStartTimestampMillis(long v)             { this.startTimestampMillis = v; }
-    public void setEndTimestampMillis(long v)               { this.endTimestampMillis = v; }
-    public void setMatchedActivities(ArrayList<String> m)   { this.matchedActivities = m; }
 
     @Override
     public String toString() {
