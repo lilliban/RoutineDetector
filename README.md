@@ -8,4 +8,6 @@
   --out /result/ `
 --mode detection `
 --strategy A
+--vendor 1 
+--percent 0.8 
 
